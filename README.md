@@ -12,8 +12,7 @@ approximations to the derivative of the identity. Interpreting the nodal basis i
 way leads to useful and interpretable operations such as integration with the exponential kernel for Fourier analysis, leading to a high-order discrete Fourier transform.
 In this work the high-order transform is shown to solve the Poisson equation with
 O((∆x)n+1/2)-accuracy. Efficient calculation of high-dimensional flows is illustrated
-by solving the Vlasov-Poisson system in 1D+2V phase space to simulate the instabil-
-ity of a loss-cone distribution to perpendicular-propagating cyclotron harmonic waves.
+by solving the Vlasov-Poisson system in 1D+2V phase space to simulate the instability of a loss-cone distribution to perpendicular-propagating cyclotron harmonic waves.
 
 ## Use
 You'll need a CUDA-compatible GPU and an install of the CuPy library.

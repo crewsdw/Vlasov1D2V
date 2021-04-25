@@ -10,8 +10,7 @@ on Lobatto quadrature points as a Fourier-Legendre approximation to the quadratu
 weighted identity of that point.
 The DG gradient operators are then shown to be
 approximations to the derivative of the identity. Interpreting the nodal basis in this
-way leads to useful and interpretable operations such as integration with the expo-
-nential kernel for Fourier analysis, leading to a high-order discrete Fourier transform.
+way leads to useful and interpretable operations such as integration with the exponential kernel for Fourier analysis, leading to a high-order discrete Fourier transform.
 In this work the high-order transform is shown to solve the Poisson equation with
 O((∆x)n+1/2)-accuracy. Efficient calculation of high-dimensional flows is illustrated
 by solving the Vlasov-Poisson system in 1D+2V phase space to simulate the instabil-

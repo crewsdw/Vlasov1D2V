@@ -18,5 +18,6 @@ by solving the Vlasov-Poisson system in 1D+2V phase space to simulate the instab
 ity of a loss-cone distribution to perpendicular-propagating cyclotron harmonic waves.
 
 ## Use
+You'll need a CUDA-compatible GPU and an install of the CuPy library.
 To use the scipts: download the files, make a data folder, and adjust the run parameters (resolutions, domain length, etc.) at the beginning of the "main.py" file.
 To play around with different initial conditions, adjust the eigenvalue parameter "om" (for frequency, omega) during initialization of the distribution function.

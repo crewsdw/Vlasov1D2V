@@ -103,132 +103,6 @@ e.invert()
 # Zeroth moment
 n0 = f0.moment_zero()
 
-if study_poisson:
-    # Artificial density
-    n0 = cp.sin(grids.x.k1 * grids.x.arr_cp[1:-1, :]) / refs.charge_density_multiplier
-    n0 += 0.1 * cp.random.rand(grids.x.res * grids.x.order).reshape(grids.x.res, grids.x.order) / refs.charge_density_multiplier
-
-    plt.figure()
-    plt.plot(grids.x.arr[1:-1, :].flatten(), n0.flatten().get(), 'o--')
-    plt.show()
-
-    # Poisson problem, two ways
-    e.poisson(charge_density=cp.asarray(n0) - cp.mean(n0), grid=grids.x, basis=basis.b1, anti_alias=False)
-    pot1 = e.potential
-    field1 = e.electric_field
-    e.poisson(charge_density=cp.asarray(n0) - cp.mean(n0), grid=grids.x, basis=basis.b1, anti_alias=True)
-    pot11 = e.potential
-    field11 = e.electric_field
-    e.poisson2(charge_density=cp.asarray(n0) - cp.mean(n0), grid=grids.x, basis=basis.b1)
-    pot2 = e.potential
-    field2 = e.electric_field
-    # Exact solutions, -2.0 * delta_n *
-    pot_exact = - refs.charge_density_multiplier * \
-                np.sin(grids.x.k1 * grids.x.arr[1:-1, :]) / (grids.x.k1 ** 2.0) / refs.charge_density_multiplier
-    field_exact = refs.charge_density_multiplier * \
-                  np.cos(grids.x.k1 * grids.x.arr) / grids.x.k1 / refs.charge_density_multiplier
-    fine_exact = -refs.charge_density_multiplier * \
-                np.sin(grids.x.k1 * grids.x.arr_fine[1:-1, :]) / (grids.x.k1 ** 2.0) / refs.charge_density_multiplier
-    field_fine_exact = refs.charge_density_multiplier * \
-                  np.cos(grids.x.k1 * grids.x.arr_fine) / grids.x.k1 / refs.charge_density_multiplier
-    # Errors
-    potential_error1 = pot_exact - pot1.get()
-    potential_error11 = pot_exact - pot11.get()
-    potential_error2 = pot_exact - pot2.get()
-    field_error1 = field_exact - field1.get()
-    field_error11 = field_exact - field11.get()
-    field_error2 = field_exact - field2.get()
-
-    # Interpolate for trapz error
-    interpolate1 = basis.b1.interpolate_values(grids.x, pot1.get())
-    int1_error = fine_exact - interpolate1
-    interpolate11 = basis.b1.interpolate_values(grids.x, pot11.get())
-    interpolate2 = basis.b1.interpolate_values(grids.x, pot2.get())
-    int2_error = fine_exact - interpolate2
-    error1 = (np.trapz((fine_exact - interpolate1) ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
-             / resolutions[0]
-    error11 = (np.trapz((fine_exact - interpolate11) ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
-              / resolutions[0]
-    error2 = (np.trapz((fine_exact - interpolate2) ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
-             / resolutions[0]
-
-    field_int1 = basis.b1.interpolate_values(grids.x, field1[1:-1, :].get())
-    field_int1_error = field_fine_exact[1:-1, :] - field_int1
-    field_int2 = basis.b1.interpolate_values(grids.x, field2[1:-1, :].get())
-    field_int2_error = field_fine_exact[1:-1, :] - field_int2
-
-    field_error_num1 = (np.trapz(field_int1_error ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
-             / resolutions[0]
-    field_error_num2 = (np.trapz(field_int2_error ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
-             / resolutions[0]
-    print('Potential broken L2 errors are')
-    print(error1)
-    # print(error11)
-    print(error2)
-    print('Field broken L2 errors are')
-    print(field_error_num1)
-    print(field_error_num2)
-
-    plt.figure()
-    plt.plot(grids.x.arr[1:-1, :].flatten(), pot_exact.flatten(), 'o--', label='Exact solution')
-    plt.plot(grids.x.arr[1:-1, :].flatten(), pot1.flatten().get(), 'o--', label='Stabilized central flux')
-    plt.plot(grids.x.arr[1:-1, :].flatten(), pot2.flatten().get(), 'o--', label='Fourier spectral method')
-    plt.plot(grids.x.arr_fine[1:-1, :].flatten(), interpolate1.flatten(), 'o--', label='Interpolated central flux')
-    plt.grid(True)
-    plt.xlabel('x')
-    plt.ylabel(r'Potential $\Phi$')
-    plt.legend(loc='best')
-    plt.tight_layout()
-
-    plt.figure()
-    plt.plot(grids.x.arr.flatten(), field_exact.flatten(), 'o--', label='Exact solution')
-    # plt.plot(grids.x.arr[1:-1, :].flatten(),
-    #          refs.electron_acceleration_multiplier * e.electric_field[1:-1, :].get().flatten(), 'o--')
-    plt.plot(grids.x.arr.flatten(), field1.flatten().get(), 'o--', label='Stabilized central flux')
-    plt.plot(grids.x.arr.flatten(), field2.flatten().get(), 'o--', label='Fourier spectral method')
-    plt.xlabel('x')
-    plt.ylabel(r'Field $E$')
-    plt.grid(True)
-    plt.legend(loc='best')
-    plt.tight_layout()
-
-    fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
-    axs[1].semilogy(grids.x.arr[1:-1, :].flatten(), abs(potential_error1.flatten()), 'o--',
-                    label='Nodal central flux')
-    axs[1].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(int1_error.flatten()), 'o',
-                    label='Interpolated central flux')
-    # axs[1].semilogy(grids.x.arr[1:-1, :].flatten(), abs(potential_error11.flatten()), 'o--',
-    #                 label='Anti-aliased central flux error')
-    axs[1].semilogy(grids.x.arr[1:-1, :].flatten(), abs(potential_error2.flatten()), 'o--',
-                    label='Nodal Fourier method')
-    axs[1].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(int2_error.flatten()), 'o',
-                    label='Interpolated Fourier method')
-    axs[1].grid(True)
-    axs[1].set_title('Potential')  # 'Potential error')
-    # plt.legend(loc='best')
-    # axs[0].legend(loc='best')
-    axs[0].semilogy(grids.x.arr[1:-1, :].flatten(), abs(field_error1[1:-1, :].flatten()),
-                    'o--', label='Nodal central flux error')
-    axs[0].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(field_int1_error.flatten()),
-                    'o', label='Interpolated central flux error')
-    # axs[0].semilogy(grids.x.arr.flatten(), abs(field_error11.flatten()),
-    # 'o--', label='Anti-aliased central flux error')
-    axs[0].semilogy(grids.x.arr[1:-1, :].flatten(), abs(field_error2[1:-1, :].flatten()), 'o--',
-                    label='Fourier method error')
-    axs[0].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(field_int2_error.flatten()),
-                    'o', label='Interpolated Fourier method error')
-    axs[0].set_title('Field')
-    axs[0].grid(True)
-    plt.legend(loc='best')
-    # Add labels
-    fig.add_subplot(111, frameon=False)
-    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
-    plt.xlabel(r'Position $x$')
-    plt.ylabel(r'Difference from no-noise exact solution')
-    plt.tight_layout()
-
-    plt.show()
-
 print('\nSetting magnetic field...')
 e.set_magnetic_field(magnetic_field=(refs.omp_e_tau / refs.omc_e_tau) / om_pc)  # referenced to electrons
 print('The magnetic field felt by electrons is {:0.3e}'.format(
@@ -381,3 +255,129 @@ p.show_grid()
 p.show()
 
 quit()
+
+if study_poisson:
+    # Artificial density
+    n0 = cp.sin(grids.x.k1 * grids.x.arr_cp[1:-1, :]) / refs.charge_density_multiplier
+    n0 += 0.1 * cp.random.rand(grids.x.res * grids.x.order).reshape(grids.x.res, grids.x.order) / refs.charge_density_multiplier
+
+    plt.figure()
+    plt.plot(grids.x.arr[1:-1, :].flatten(), n0.flatten().get(), 'o--')
+    plt.show()
+
+    # Poisson problem, two ways
+    e.poisson(charge_density=cp.asarray(n0) - cp.mean(n0), grid=grids.x, basis=basis.b1, anti_alias=False)
+    pot1 = e.potential
+    field1 = e.electric_field
+    e.poisson(charge_density=cp.asarray(n0) - cp.mean(n0), grid=grids.x, basis=basis.b1, anti_alias=True)
+    pot11 = e.potential
+    field11 = e.electric_field
+    e.poisson2(charge_density=cp.asarray(n0) - cp.mean(n0), grid=grids.x, basis=basis.b1)
+    pot2 = e.potential
+    field2 = e.electric_field
+    # Exact solutions, -2.0 * delta_n *
+    pot_exact = - refs.charge_density_multiplier * \
+                np.sin(grids.x.k1 * grids.x.arr[1:-1, :]) / (grids.x.k1 ** 2.0) / refs.charge_density_multiplier
+    field_exact = refs.charge_density_multiplier * \
+                  np.cos(grids.x.k1 * grids.x.arr) / grids.x.k1 / refs.charge_density_multiplier
+    fine_exact = -refs.charge_density_multiplier * \
+                np.sin(grids.x.k1 * grids.x.arr_fine[1:-1, :]) / (grids.x.k1 ** 2.0) / refs.charge_density_multiplier
+    field_fine_exact = refs.charge_density_multiplier * \
+                  np.cos(grids.x.k1 * grids.x.arr_fine) / grids.x.k1 / refs.charge_density_multiplier
+    # Errors
+    potential_error1 = pot_exact - pot1.get()
+    potential_error11 = pot_exact - pot11.get()
+    potential_error2 = pot_exact - pot2.get()
+    field_error1 = field_exact - field1.get()
+    field_error11 = field_exact - field11.get()
+    field_error2 = field_exact - field2.get()
+
+    # Interpolate for trapz error
+    interpolate1 = basis.b1.interpolate_values(grids.x, pot1.get())
+    int1_error = fine_exact - interpolate1
+    interpolate11 = basis.b1.interpolate_values(grids.x, pot11.get())
+    interpolate2 = basis.b1.interpolate_values(grids.x, pot2.get())
+    int2_error = fine_exact - interpolate2
+    error1 = (np.trapz((fine_exact - interpolate1) ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
+             / resolutions[0]
+    error11 = (np.trapz((fine_exact - interpolate11) ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
+              / resolutions[0]
+    error2 = (np.trapz((fine_exact - interpolate2) ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
+             / resolutions[0]
+
+    field_int1 = basis.b1.interpolate_values(grids.x, field1[1:-1, :].get())
+    field_int1_error = field_fine_exact[1:-1, :] - field_int1
+    field_int2 = basis.b1.interpolate_values(grids.x, field2[1:-1, :].get())
+    field_int2_error = field_fine_exact[1:-1, :] - field_int2
+
+    field_error_num1 = (np.trapz(field_int1_error ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
+             / resolutions[0]
+    field_error_num2 = (np.trapz(field_int2_error ** 2.0, x=grids.x.arr_fine[1:-1, :], axis=1) ** 0.5).sum(axis=0) \
+             / resolutions[0]
+    print('Potential broken L2 errors are')
+    print(error1)
+    # print(error11)
+    print(error2)
+    print('Field broken L2 errors are')
+    print(field_error_num1)
+    print(field_error_num2)
+
+    plt.figure()
+    plt.plot(grids.x.arr[1:-1, :].flatten(), pot_exact.flatten(), 'o--', label='Exact solution')
+    plt.plot(grids.x.arr[1:-1, :].flatten(), pot1.flatten().get(), 'o--', label='Stabilized central flux')
+    plt.plot(grids.x.arr[1:-1, :].flatten(), pot2.flatten().get(), 'o--', label='Fourier spectral method')
+    plt.plot(grids.x.arr_fine[1:-1, :].flatten(), interpolate1.flatten(), 'o--', label='Interpolated central flux')
+    plt.grid(True)
+    plt.xlabel('x')
+    plt.ylabel(r'Potential $\Phi$')
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.figure()
+    plt.plot(grids.x.arr.flatten(), field_exact.flatten(), 'o--', label='Exact solution')
+    # plt.plot(grids.x.arr[1:-1, :].flatten(),
+    #          refs.electron_acceleration_multiplier * e.electric_field[1:-1, :].get().flatten(), 'o--')
+    plt.plot(grids.x.arr.flatten(), field1.flatten().get(), 'o--', label='Stabilized central flux')
+    plt.plot(grids.x.arr.flatten(), field2.flatten().get(), 'o--', label='Fourier spectral method')
+    plt.xlabel('x')
+    plt.ylabel(r'Field $E$')
+    plt.grid(True)
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
+    axs[1].semilogy(grids.x.arr[1:-1, :].flatten(), abs(potential_error1.flatten()), 'o--',
+                    label='Nodal central flux')
+    axs[1].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(int1_error.flatten()), 'o',
+                    label='Interpolated central flux')
+    # axs[1].semilogy(grids.x.arr[1:-1, :].flatten(), abs(potential_error11.flatten()), 'o--',
+    #                 label='Anti-aliased central flux error')
+    axs[1].semilogy(grids.x.arr[1:-1, :].flatten(), abs(potential_error2.flatten()), 'o--',
+                    label='Nodal Fourier method')
+    axs[1].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(int2_error.flatten()), 'o',
+                    label='Interpolated Fourier method')
+    axs[1].grid(True)
+    axs[1].set_title('Potential')  # 'Potential error')
+    # plt.legend(loc='best')
+    # axs[0].legend(loc='best')
+    axs[0].semilogy(grids.x.arr[1:-1, :].flatten(), abs(field_error1[1:-1, :].flatten()),
+                    'o--', label='Nodal central flux error')
+    axs[0].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(field_int1_error.flatten()),
+                    'o', label='Interpolated central flux error')
+    # axs[0].semilogy(grids.x.arr.flatten(), abs(field_error11.flatten()),
+    # 'o--', label='Anti-aliased central flux error')
+    axs[0].semilogy(grids.x.arr[1:-1, :].flatten(), abs(field_error2[1:-1, :].flatten()), 'o--',
+                    label='Fourier method error')
+    axs[0].semilogy(grids.x.arr_fine[1:-1, :].flatten(), abs(field_int2_error.flatten()),
+                    'o', label='Interpolated Fourier method error')
+    axs[0].set_title('Field')
+    axs[0].grid(True)
+    plt.legend(loc='best')
+    # Add labels
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    plt.xlabel(r'Position $x$')
+    plt.ylabel(r'Difference from no-noise exact solution')
+    plt.tight_layout()
+
+    plt.show()

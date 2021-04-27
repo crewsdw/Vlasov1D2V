@@ -64,6 +64,13 @@ class ReadData:
             eng = f['energy'][()]
         return t, pdf, pot, den, eng
 
+    def read_specific_time(self, idx):
+        # Open for reading
+        with h5py.File(self.write_filename, 'r') as f:
+            t = f['time'][idx]
+            pdf = f['pdf'][idx]
+        return t, pdf
+
     # Read data file
     def read_info(self):
         # Open info file

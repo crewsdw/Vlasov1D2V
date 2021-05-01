@@ -84,15 +84,15 @@ quad_arr = cp.array([[1, -0.9988664044200710501855,  0.002908622553155140958],
     [50,  0.9988664044200710501855,    0.0029086225531551409584]])
 
 # Parameters
-a = 10.0  # 10.0  # 20.0 # omega_p / omega_c
-j = 6
+a = 10.0  # 10.0  # 10.0  # 20.0 # omega_p / omega_c
+j = 6  # 6
 # Grids
-k = np.linspace(0.7, 1.0, num=150)
-fr = np.linspace(-0.5, 0.5, num=150)
-fi = np.linspace(-0.75, 0.75, num=75)
-fz = np.tensordot(fr, np.ones_like(fi),axes=0) + 1.0j*np.tensordot(np.ones_like(fr), fi, axes=0)
+k = np.linspace(0.01, 2.5, num=100)
+fr = np.linspace(0.0, 3.0, num=100)
+fi = np.linspace(0.0, 0.3, num=75)
+fz = np.tensordot(fr, np.ones_like(fi), axes=0) + 1.0j*np.tensordot(np.ones_like(fr), fi, axes=0)
 
-# Meshgrids for plotting
+# Mesh-grids for plotting
 K = np.tensordot(k, np.ones_like(fr), axes=0)
 F = np.tensordot(np.ones_like(k), fr, axes=0)
 FR = np.tensordot(fr, np.ones_like(fi), axes=0)
@@ -104,7 +104,8 @@ FF = np.tensordot(np.ones_like(k), fi, axes=0)
 # Get order j Laguerre polynomial
 arr = np.zeros(j+1)
 arr[-1] = 1.0
-p = L(arr)
+poly = L(arr)
+
 
 # Build funky integrand
 def integrand(x, frequency, wave_number):
@@ -115,28 +116,43 @@ def integrand(x, frequency, wave_number):
     # Build integrand, z=k^2*(1 + cos(theta)) 
     # z is shape (quad points, wave numbers, real freq, imag freq)
     z = cp.tensordot(cp.tensordot(1.0 + cp.cos(theta), wave_number ** 2.0, axes=0), cp.ones_like(frequency), axes=0)
-    lag = cp.asarray(p(z.get())) # sad
-    # Product theta * frequency
+    lag = cp.asarray(poly(z.get()))  # sad because slow part... laguerre poly is numpy-only
+    # Compute product theta * frequency
     ft = cp.tensordot(theta, frequency, axes=0)
-    # sin(x) * sin(omega * x)
+    # Compute product sin(x) * sin(omega * x)
     sine_ft = cp.multiply(cp.sin(theta)[:, None, None], cp.sin(ft))
     # Return integrand on quad points, sin(x) * sin(omega * x) * Laguerre(z) * exp(-z)
     return cp.multiply(sine_ft[:, None, :, :], lag * cp.exp(-z))
 
+
 # Integrand
 inner = cp.asarray(integrand(x=quad_arr[:, 1], frequency=fz, wave_number=k))
-# Dispersion function doing 25-pt GL quad
-D = 1.0 + (a ** 2.0) * 0.5 * np.pi * cp.divide(cp.tensordot(quad_arr[:,2], inner, axes=([0], [0])), cp.sin(np.pi * cp.asarray(fz))[None, :, :]).get()
+# Dispersion function doing 50-pt GL quad
+# D = 1.0 + (a ** 2.0) * 0.5 * np.pi * cp.divide(cp.tensordot(quad_arr[:, 2], inner, axes=([0], [0])),
+#                                                cp.sin(np.pi * cp.asarray(fz))[None, :, :]).get()
+D = (cp.sin(np.pi * cp.asarray(fz))[None, :, :] +
+    (a ** 2.0 * 0.5 * np.pi) * cp.tensordot(quad_arr[:, 2], inner, axes=([0], [0]))).get()
 
-idx_z = np.where(np.absolute(fr) == np.amin(np.absolute(fr)))
-print(fr[idx_z])
+# idx_z = np.where(np.absolute(fr) == np.amin(np.absolute(fr)))
+# print(fr[idx_z])
+# idx_k = np.where(np.absolute(k - 1.7) < 5.0e-2)
+# idx_k = 50
+# print(k[idx_k])
+
+# plt.figure()
+# plt.contour(KK, FF, np.real(D[:, idx_z, :][:, 0, 0, :]), 0)
+# plt.grid(True)
+# plt.xlabel(r'$k$')
+# plt.ylabel(r'$\omega_i$')
+# plt.tight_layout()
 
 plt.figure()
-plt.contour(KK, FF, np.real(D[:, idx_z, :][:,0,0,:]), 0)
+plt.contour(K, F, np.real(D[:, :, 0]), 0)
 plt.grid(True)
-plt.xlabel(r'$k$')
-plt.ylabel(r'$\omega_i$')
+plt.xlabel(r'$kr_L$')
+plt.ylabel(r'$\omega_r/\omega_c$')
 plt.tight_layout()
+
 plt.show()
 
  #plt.figure()

@@ -13,15 +13,15 @@ import pyvista as pv
 
 order = 8
 time_order = 3
-res_x, res_u, res_v = 25, 50, 50
+res_x, res_u, res_v = 10, 25, 25  # 25, 50, 50
 folder = '..\\data\\'
-filename = 'test'  # 'ring_param6_poisson2_2'
+filename = 'harmonics_testing'  # 'ring_param6_poisson2_2'
 # Flags
 plot_IC = True
 study_poisson = False
 
 ring_j = 6
-om_pc = 10.0
+om_pc = 5.0  # 10.0
 delta_n = 1.0e-4
 
 #  Initialize reference normalization parameters
@@ -36,7 +36,7 @@ basis = b.Basis3D(orders)
 
 # Initialize grids
 print('\nInitializing grids...')
-k_est = 0.886 / om_pc  # k * larmor_r
+k_est = 1.3 / om_pc  # 0.886 / om_pc  # k * larmor_r
 L = 2.0 * np.pi / k_est  # 100.0  # 140  # 113.2
 print('Domain length is ' + str(L))
 lows = np.array([-L / 2.0, -8.5 * refs.vt_e, -8.5 * refs.vt_e])
@@ -49,7 +49,7 @@ geo_info = np.array([[lows[0], highs[0], resolutions[0], orders[0]],
                      [lows[2], highs[2], resolutions[2], orders[2]]])
 
 # Time information
-final_time = 190.0  # 200.0
+final_time = 40.0  # 190.0  # 200.0
 write_time = 1.0
 # dt estimate
 dt_est = grids.u.dx / highs[1]
@@ -57,8 +57,9 @@ print('Estimated dt is {:0.3e}'.format(dt_est))
 
 # Build distribution
 print('\nInitializing distribution function...')
+om = 2.852  # 1.542  # 1.0524
 f0 = g.Distribution(vt=refs.vt_e, ring_j=ring_j, resolutions=resolutions, orders=orders,
-                    om=-3.486e-1j, om_pc=om_pc, delta_n=delta_n)  # om = 1.05
+                    om=om, om_pc=om_pc, delta_n=delta_n)  # om = 1.05, -3.486e-1j
 f0.initialize_quad_weights(grids)
 f0.initialize_gpu(grids)
 
@@ -163,7 +164,7 @@ cb_dx = np.linspace(np.amin(df0f[:, :, (res_v * order) // idx]), np.amax(df0f[:,
 cb_df = np.linspace(np.amin(df0f[(res_x * order) // idx, :, :]), np.amax(df0f[(res_x * order) // idx, :, :]), num=100)
 
 plt.figure()
-plt.semilogy(stepper.time_array, stepper.field_energy, 'o--')
+plt.plot(stepper.time_array, stepper.field_energy, 'o--')
 plt.grid(True)
 plt.xlabel('Time t')
 plt.ylabel('Field energy')

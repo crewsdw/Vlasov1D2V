@@ -176,47 +176,46 @@ class Distribution:
         self.arr_explicit_copy = cp.copy(self.arr)  # copy.deepcopy(self.arr)  # cp.copy(self.arr)
 
     def eigenfunction(self, grids):
-        # Using wave-number x.k1
+        # Whether symmetric perturbation or not (i.e. using +- frequency to init)
+        symmetric_pert = True
+
+        # Grid set-up, using wave-number x.k1
         u = np.tensordot(grids.u.arr, np.ones_like(grids.v.arr), axes=0)
         v = np.tensordot(np.ones_like(grids.u.arr), grids.v.arr, axes=0)
         r = np.sqrt(u ** 2.0 + v ** 2.0)
         phi = np.arctan2(v, u)
-        beta = - grids.x.k1 * r * self.om_pc
-        # print(self.om_pc)
-        # Obtain radial function (df/dv / v)
+        beta = - grids.x.k1 * r * self.om_pc  # parameter (kr_L * v) / omega_c = (k*lambda_D * v) * (omega_p / omega_c)
+        # Obtain radial gradient of distribution function (df/dv / v)
         x = 0.5 * (r / self.vt) ** 2.0
         f0 = 1 / (2.0 * np.pi * (self.vt ** 2.0) * np.math.factorial(self.ring_j)) * np.multiply(x ** self.ring_j,
                                                                                                  np.exp(-x))
-        df_dv = np.multiply(f0, (self.ring_j / (x+1.0e-16) - 1.0)) / (self.vt ** 2.0)
+        df_dv = np.multiply(f0, (self.ring_j / (x + 1.0e-16) - 1.0)) / (self.vt ** 2.0)
 
-        # Fourier series
-        terms_n = 20
-        upsilon = np.array([n / (n - self.om) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
-                            for n in range(-terms_n, terms_n + 1)]).sum(axis=0)
-        vel_part = 2.0 * self.delta_n * np.multiply(df_dv, upsilon) / (grids.x.k1 ** 2.0)  # * (self.om_pc ** 2.0)
-        print('wave-number ' + str(grids.x.k1))
+        # Set up eigen-mode
+        eig = 0 + 0j
+        if symmetric_pert:
+            om1 = self.om
+            om2 = -1.0 * self.om
+            frequencies = [om1, om2]
 
-        # Add exp(1j * v * sin(phi))
-        vel_part = -1j * np.multiply(np.exp(1j * np.multiply(beta, np.sin(phi))), vel_part)
+            for om in frequencies:
+                # Compute the eigenfunction using the following Fourier series:
+                terms_n = 20
+                upsilon = np.array([n / (n - om) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
+                                    for n in range(-terms_n, terms_n + 1)]).sum(axis=0)  # self.om
+                eig += np.multiply(df_dv, upsilon) / grids.x.k1 ** 2.0  # * (self.om_pc ** 2.0)
 
-        return cp.asarray(np.real(np.tensordot(np.exp(1j * grids.x.k1 * grids.x.arr), vel_part, axes=0)))
-        # terms_n = 10
-        # terms_ll = 10
-        # for ll in range(-terms_ll, terms_ll + 1):
-        #     ell_l = np.array(
-        #         [inner_series(n=n, ll=ll, om=self.om, b=beta) for n in range(-terms_n, terms_n + 1)]).sum(axis=0)
-        #     gamma += np.multiply(ell_l, np.exp(-1j * ll * phi))
-        #
-        # return cp.asarray((self.om_pc ** 2.0) * self.delta_n * np.multiply(df_dv, np.real(gamma))
-        # / (grids.x.k1 ** 2.0))
+        # Construct total eigen-mode, first product with exp(i * v * sin(phi))
+        vel_mode = -1j * np.multiply(np.exp(1j * np.multiply(beta, np.sin(phi))), eig)
+        # Then product with exp(i * k * x)
+        return 2.0 * self.delta_n * cp.asarray(np.real(np.tensordot(np.exp(1j * grids.x.k1 * grids.x.arr),
+                                                                    vel_mode, axes=0)))
+        # return cp.asarray(np.real(np.tensordot(np.exp(1j * grids.x.k1 * grids.x.arr), vel_part, axes=0)))
 
     def initialize_gpu(self, grids):
         """
         Initialize distribution function as polar eigenfunction on GPU
         """
-        # if self.perturbation:
-        #     perturbation =
-
         # As CuPy arrays
         grids.x.grid2cp()
         grids.u.grid2cp()
@@ -230,24 +229,9 @@ class Distribution:
         iu = cp.tensordot(cp.ones(grids.u.res_ghosts), cp.ones(grids.u.order), axes=0)
         iv = cp.tensordot(cp.ones(grids.v.res_ghosts), cp.ones(grids.v.order), axes=0)
 
-        # add perturbation
-        # if self.perturbation:
-        #     ix += 2.0 * self.delta_n * cp.sin(grids.x.k1 * grids.x.arr)
-
         # Build gaussian
         rsq = (cp.tensordot(grids.u.arr ** 2.0, iv, axes=0) +
                cp.tensordot(iu, grids.v.arr ** 2.0, axes=0)) / (self.vt ** 2.0)
-
-        # plt.figure()
-        # plt.imshow(rsq.reshape(iu.shape[0]*iu.shape[1], iv.shape[0]*iv.shape[1]).get())
-        # plt.show()
-        # rsq = (cp.tensordot(grids.u.arr.flatten() ** 2.0, iv.flatten(), axes=0) +
-        #        cp.tensordot(iu.flatten(), grids.v.arr.flatten() ** 2.0, axes=0))
-        # print(rsq[:25, :25])
-        #
-        # plt.figure()
-        # plt.imshow(rsq.get())
-        # plt.show()
 
         rad_j = rsq ** self.ring_j  # parameter-weighted radius
         gauss = cp.exp(-0.5 * rsq)  # gaussian
@@ -276,10 +260,6 @@ class Distribution:
         Permute from (Nx, Nu, Nv, x_ord, u_ord, v_ord) --> (Nx, x_ord, Nu, u_ord, Nv, v_ord)
         """
         self.arr = cp.transpose(self.arr, (0, 3, 1, 4, 2, 5))
-
-    # def grid_flatten_cpu(self):
-    #     rs = np.transpose(self.arr[1:-1, 1:-1, 1:-1, :, :, :], (0, 3, 1, 4, 2, 5))
-    #     return rs.reshape((self.x_res * self.x_ord, self.u_res * self.u_ord, self.v_res * self.v_ord))
 
     def grid_flatten_gpu(self):
         return self.arr[:, :, :, :, :, :].reshape(
@@ -310,6 +290,22 @@ class Distribution:
     def moment_zero_of_arr(self, arr):
         return cp.tensordot(arr[1:-1, :, 1:-1, :, 1:-1, :],
                             self.quad_weights, axes=([2, 3, 4, 5], [0, 1, 2, 3]))
+
+
+# def grid_flatten_cpu(self):
+#     rs = np.transpose(self.arr[1:-1, 1:-1, 1:-1, :, :, :], (0, 3, 1, 4, 2, 5))
+#     return rs.reshape((self.x_res * self.x_ord, self.u_res * self.u_ord, self.v_res * self.v_ord))
+
+# plt.figure()
+# plt.imshow(rsq.reshape(iu.shape[0]*iu.shape[1], iv.shape[0]*iv.shape[1]).get())
+# plt.show()
+# rsq = (cp.tensordot(grids.u.arr.flatten() ** 2.0, iv.flatten(), axes=0) +
+#        cp.tensordot(iu.flatten(), grids.v.arr.flatten() ** 2.0, axes=0))
+# print(rsq[:25, :25])
+#
+# plt.figure()
+# plt.imshow(rsq.get())
+# plt.show()
 
 # class DistributionNumpy:
 #     def __init__(self, vt, ring_j, resolutions, orders):

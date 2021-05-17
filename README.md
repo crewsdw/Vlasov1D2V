@@ -2,7 +2,7 @@
 
 This collection of Python codes solves the Vlasov-Poisson system in 1D+2V using the Runge-Kutta Discontinuous Galerkin finite element method using CUDA-accelerated libraries, namely [CuPy](https://github.com/cupy/cupy). The solver is capable of up to 9th order spatial and 3rd order temporal accuracy.
 
-![third-bernstein-harmonic](https://students.washington.edu/dcrews/gallery/third_harmonic.gif)
+[Some example solutions are found here](https://students.washington.edu/dcrews/gallery.html)
 
 ## Abstract:
 > The discontinuous Galerkin (DG) operators in the Lobatto basis are constructed to

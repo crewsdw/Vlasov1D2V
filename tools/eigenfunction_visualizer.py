@@ -15,19 +15,19 @@ import pyvista as pv
 # k = 2.0 * np.pi / L # 1.4 # 1.11 # 0.628
 # k = 1.4 # 1.5 # 0.7 # 0.7 # 0.4 # 0.2 # 1.11 # 1.4
 # L = 2.0 * np.pi / k
-k = 1.4  # 0.05  # 1.4  # 1.3
+k = 0.05  # 1.4  # 1.3
 L = 2.0 * np.pi / k
 print('Wave-number is ' + str(k))
 v = np.linspace(1.0e-6, 8.5, num=75)
 phi = np.linspace(0, 2.0*np.pi, num=75)
 space = np.linspace(0, L, num=75)
 b = - k * v  # 0.0 + 0.3110j
-om_p = 1.2 + 0.2j  # 1.40514  # 3 + 4.0e-8  # 2.00093  # 1.414  # 1.2 - 0.1j  # 1.0524  # 4.912e-1j  # 0.3110j # 1.414 # 1.2 + 0.2j
-om_n = om_p  # -2.00093  # -1.414  # -1.2 - 0.1j  # -4.912e-1j  # -1.414 # -0.3110j # -1.0e-5 # -2.05 # -3.1 # -1.414
+om_p = 1.414  # 3 + 4.0e-8  # 2.00093  # 1.414  # 1.2 - 0.1j  # 1.0524  # 4.912e-1j  # 0.3110j # 1.414 # 1.2 + 0.2j
+om_n = -om_p  # -2.00093  # -1.414  # -1.2 - 0.1j  # -4.912e-1j  # -1.414 # -0.3110j # -1.0e-5 # -2.05 # -3.1 # -1.414
 
 # Distribution
 a = 1
-ring_j = 6  # 0
+ring_j = 0
 x = 0.5 * (v/a) ** 2.0
 f0 = 1/(2.0 * np.pi * (a ** 2.0) * math.factorial(ring_j)) * np.multiply(x ** ring_j, np.exp(-x))
 dfdv = np.multiply(f0, (ring_j/x - 1.0)) / (a ** 2.0)
@@ -46,14 +46,14 @@ series = np.array([inner_series(n, om_p) for n in range(-terms_n, terms_n+1)]).s
 Gam_p = -1j * np.tensordot(np.exp(1j * k * space), np.multiply(np.exp(1j * factor), series), axes=0)
 # Negative frequency part
 series = np.array([inner_series(n, om_n) for n in range(-terms_n, terms_n+1)]).sum(axis=0)
-Gam_n = 0.0  # -1j * np.tensordot(np.exp(1j * k * space), np.multiply(np.exp(1j * factor), series), axes=0)
+Gam_n = -1j * np.tensordot(np.exp(1j * k * space), np.multiply(np.exp(1j * factor), series), axes=0)
 
 
 # Convert from cylindrical to cartesian
 vx = np.tensordot(v, np.cos(phi), axes=0)
 vy = np.tensordot(v, np.sin(phi), axes=0)
 
-scale = 2.0
+scale = 0.1
 x3 = np.tensordot(scale * space, np.ones_like(vx), axes=0)
 vx3 = np.tensordot(np.ones_like(space), vx, axes=0)
 vy3 = np.tensordot(np.ones_like(space), vy, axes=0)
@@ -78,7 +78,7 @@ p = pv.Plotter()
 actor = p.add_mesh(contour, clim=clim, opacity='linear')
 p.show_grid()
 p.show(auto_close=False)
-p.open_movie('test_bernstein2.mp4', framerate=12)
+p.open_movie('test_bernstein4.mp4', framerate=12)
 
 # Real part and contour plot
 t = np.linspace(0, 20, num=100)

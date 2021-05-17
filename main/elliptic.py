@@ -148,7 +148,7 @@ class Elliptic:
         self.magnetic_field = magnetic_field
 
     def electric_energy(self, grid):
-        return cp.tensordot(self.electric_field[1:-1, :] ** 2.0, grid.quad_weights, axes=([0, 1], [0, 1]))
+        return 0.5 * cp.tensordot(self.electric_field[1:-1, :] ** 2.0, grid.quad_weights, axes=([0, 1], [0, 1]))
 
         # Compare for debug
         # true_p = -charge_density / np.pi ** 2.0

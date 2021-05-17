@@ -288,6 +288,33 @@ class Basis3D:
         self.b2 = Basis1D(self.orders[1])
         self.b3 = Basis1D(self.orders[2])
 
+    def interpolate_values(self, grids, arr, limits):
+        x_lim = limits[0]
+        u_lim = limits[1]
+        v_lim = limits[2]
+        """ Determine interpolated values on a finer grid using the basis functions"""
+        # Compute affine transformation per-element to isoparametric element
+        xi_x = grids.x.J * (grids.x.arr_fine[x_lim[0]:x_lim[1], :] - grids.x.midpoints[x_lim[0]-1:x_lim[1]-1, None])
+        xi_u = grids.u.J * (grids.u.arr_fine[u_lim[0]:u_lim[1], :] - grids.u.midpoints[u_lim[0]-1:u_lim[1]-1, None])
+        xi_v = grids.v.J * (grids.v.arr_fine[v_lim[0]:v_lim[1], :] - grids.v.midpoints[v_lim[0]-1:v_lim[1]-1, None])
+        # print(grid.arr[1, :])
+        # print(xi[0, :])
+        # print(grid.arr_fine[1, :])
+        # Legendre polynomials at transformed points
+        ps_x = np.array([sp.legendre(s)(xi_x) for s in range(self.orders[0])])
+        ps_u = np.array([sp.legendre(s)(xi_u) for s in range(self.orders[1])])
+        ps_v = np.array([sp.legendre(s)(xi_v) for s in range(self.orders[2])])
+        # Interpolation polynomials at fine points
+        ell_x = np.transpose(np.tensordot(self.b1.vandermonde_inverse, ps_x, axes=([0], [0])), [1, 0, 2])
+        ell_u = np.transpose(np.tensordot(self.b2.vandermonde_inverse, ps_u, axes=([0], [0])), [1, 0, 2])
+        ell_v = np.transpose(np.tensordot(self.b3.vandermonde_inverse, ps_v, axes=([0], [0])), [1, 0, 2])
+        # Compute interpolated values
+        arr_r = arr[x_lim[0]:x_lim[1], :, u_lim[0]:u_lim[1], :, v_lim[0]:v_lim[1], :]
+        values = np.multiply(ell_x[:, :, :, None, None, None, None], arr_r[:, :, None, :, :, :, :]).sum(axis=1)
+        values = np.multiply(ell_u[None, None, :, :, :, None, None], values[:, :, :, :, None, :, :]).sum(axis=3)
+        values = np.multiply(ell_v[None, None, None, None, :, :, :], values[:, :, :, :, :, :, None]).sum(axis=5)
+
+        return values
 # Bin
 # Tensor product 3D basis
 # self.up = self.internal_flux()

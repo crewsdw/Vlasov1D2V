@@ -12,9 +12,13 @@ c = 1.0 / np.sqrt(eps0 * mu0)  # speed of light [m/s]
 
 class Reference:
     def __init__(self, triplet, mass_fraction):
+        # triplet values
         self.n = triplet[0]  # density [particles/m^3]
         self.T = triplet[1]  # proton temperature [eV]
         self.TeTi = triplet[2]  # temperature ratio [Te/Ti]
+        # self.omp_p_tau = triplet[0]
+        # self.ref_omp_c = triplet[1]
+
         # Length scale (actual triplet[2]):
         self.Ld = np.sqrt(eps0 * self.T * self.TeTi / (self.n * e))  # electron Debye length [m]
         # electron mass fraction (fraction of true mass)
@@ -25,6 +29,9 @@ class Reference:
         self.B = np.sqrt(self.p * mu0)  # magnetic field [T]
         self.vth = np.sqrt(e * self.T / mp)  # reference proton thermal velocity [m/s]
         self.v = self.B / np.sqrt(mu0 * mp * self.n)  # reference Alfven velocity [m/s]
+        # print(self.vth)
+        # print(self.v)
+        # quit()
         self.tau = self.Ld / self.v  # ion Debye length transit time
 
         # dimensionless parameters

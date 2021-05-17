@@ -36,12 +36,13 @@ class Grid1D:
 
         # fine array
         if fine:
-            self.arr_fine = np.array([np.linspace(self.arr[i, 0], self.arr[i, -1], num=100)
+            fine_num = 25  # 200 for 1D poisson study
+            self.arr_fine = np.array([np.linspace(self.arr[i, 0], self.arr[i, -1], num=fine_num)
                                       for i in range(self.res_ghosts)])
 
         # spectral coefficients
         if spectrum:
-            self.nyquist_number = self.length // self.dx  # mode number of nyquist frequency
+            self.nyquist_number = 2.5 * self.length // self.dx  # mode number of nyquist frequency
             self.k1 = 2.0 * np.pi / self.length  # fundamental mode
             self.wave_numbers = self.k1 * np.arange(1 - self.nyquist_number, self.nyquist_number)
             self.d_wave_numbers = cp.asarray(self.wave_numbers)
@@ -90,11 +91,14 @@ class Grid1D:
 
 
 class Grid3D:
-    def __init__(self, basis, lows, highs, resolutions, fine_x=False):
+    def __init__(self, basis, lows, highs, resolutions, fine_x=False, fine_all=False):
+        fx = False
+        if fine_x or fine_all:
+            fx = True
         # Grids
-        self.x = Grid1D(low=lows[0], high=highs[0], res=resolutions[0], basis=basis.b1, spectrum=True, fine=fine_x)
-        self.u = Grid1D(low=lows[1], high=highs[1], res=resolutions[1], basis=basis.b2)
-        self.v = Grid1D(low=lows[2], high=highs[2], res=resolutions[2], basis=basis.b3)
+        self.x = Grid1D(low=lows[0], high=highs[0], res=resolutions[0], basis=basis.b1, spectrum=True, fine=fx)
+        self.u = Grid1D(low=lows[1], high=highs[1], res=resolutions[1], basis=basis.b2, fine=fine_all)
+        self.v = Grid1D(low=lows[2], high=highs[2], res=resolutions[2], basis=basis.b3, fine=fine_all)
         # No ghost slice
         self.no_ghost_slice = (slice(1, self.x.res_ghosts - 1), slice(self.x.order),
                                slice(1, self.u.res_ghosts - 1), slice(self.u.order),
@@ -109,6 +113,27 @@ class Grid3D:
 
 def inner_series(n, ll, om, b):
     return n / (n - om) * sp.jv(n, b) * sp.jv(n - ll, b)
+
+
+def smooth_edges(arr):
+    # Set edges to average value
+    # x edges
+    arr[1:-1, 0, 1:-1, :, 1:-1, :] = 0.5 * (cp.roll(arr, shift=1, axis=0)[1:-1, -1, 1:-1, :, 1:-1, :]
+                                            + arr[1:-1, 0, 1:-1, :, 1:-1, :])
+    arr[1:-1, -1, 1:-1, :, 1:-1, :] = 0.5 * (cp.roll(arr, shift=-1, axis=0)[1:-1, 0, 1:-1, :, 1:-1, :]
+                                             + arr[1:-1, -1, 1:-1, :, 1:-1, :])
+    # u edges
+    arr[1:-1, :, 1:-1, 0, 1:-1, :] = 0.5 * (cp.roll(arr, shift=1, axis=2)[1:-1, :, 1:-1, -1, 1:-1, :]
+                                            + arr[1:-1, :, 1:-1, 0, 1:-1, :])
+    arr[1:-1, :, 1:-1, -1, 1:-1, :] = 0.5 * (cp.roll(arr, shift=-1, axis=2)[1:-1, :, 1:-1, 0, 1:-1, :]
+                                             + arr[1:-1, :, 1:-1, -1, 1:-1, :])
+    # v edges
+    arr[1:-1, :, 1:-1, :, 1:-1, 0] = 0.5 * (cp.roll(arr, shift=1, axis=4)[1:-1, :, 1:-1, :, 1:-1, -1]
+                                            + arr[1:-1, :, 1:-1, :, 1:-1, 0])
+    arr[1:-1, :, 1:-1, :, 1:-1, -1] = 0.5 * (cp.roll(arr, shift=-1, axis=4)[1:-1, :, 1:-1, :, 1:-1, 0]
+                                             + arr[1:-1, :, 1:-1, :, 1:-1, -1])
+
+    return arr
 
 
 class Distribution:
@@ -177,7 +202,7 @@ class Distribution:
 
     def eigenfunction(self, grids):
         # Whether symmetric perturbation or not (i.e. using +- frequency to init)
-        symmetric_pert = True
+        symmetric_pert = False  # True
 
         # Grid set-up, using wave-number x.k1
         u = np.tensordot(grids.u.arr, np.ones_like(grids.v.arr), axes=0)
@@ -204,6 +229,12 @@ class Distribution:
                 upsilon = np.array([n / (n - om) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
                                     for n in range(-terms_n, terms_n + 1)]).sum(axis=0)  # self.om
                 eig += np.multiply(df_dv, upsilon) / grids.x.k1 ** 2.0  # * (self.om_pc ** 2.0)
+
+        if not symmetric_pert:
+            terms_n = 20
+            upsilon = np.array([n / (n - self.om) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
+                                for n in range(-terms_n, terms_n + 1)]).sum(axis=0)  # self.om
+            eig += np.multiply(df_dv, upsilon) / grids.x.k1 ** 2.0  # * (self.om_pc ** 2.0)
 
         # Construct total eigen-mode, first product with exp(i * v * sin(phi))
         vel_mode = -1j * np.multiply(np.exp(1j * np.multiply(beta, np.sin(phi))), eig)
@@ -290,7 +321,6 @@ class Distribution:
     def moment_zero_of_arr(self, arr):
         return cp.tensordot(arr[1:-1, :, 1:-1, :, 1:-1, :],
                             self.quad_weights, axes=([2, 3, 4, 5], [0, 1, 2, 3]))
-
 
 # def grid_flatten_cpu(self):
 #     rs = np.transpose(self.arr[1:-1, 1:-1, 1:-1, :, :, :], (0, 3, 1, 4, 2, 5))

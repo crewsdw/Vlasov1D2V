@@ -6,7 +6,7 @@ import cupy as cp
 
 from numpy.polynomial import Laguerre as L
 
-# GL Quad
+# # GL Quad
 # quad_arr = cp.array([[1,   0.1231760537267154,  0.0000000000000000],
 #     [2,   0.1222424429903100,  -0.1228646926107104],
 #     [3,   0.1222424429903100,  0.1228646926107104],
@@ -87,9 +87,9 @@ quad_arr = cp.array([[1, -0.9988664044200710501855,  0.002908622553155140958],
 a = 10.0  # 10.0  # 10.0  # 20.0 # omega_p / omega_c
 j = 6  # 6
 # Grids
-k = np.linspace(0.01, 2.5, num=100)
-fr = np.linspace(0.0, 3.0, num=100)
-fi = np.linspace(0.0, 0.3, num=75)
+k = np.linspace(1.4, 1.5, num=5)
+fr = np.linspace(1.0, 1.5, num=100)
+fi = np.linspace(0.0, 0.3, num=100)
 fz = np.tensordot(fr, np.ones_like(fi), axes=0) + 1.0j*np.tensordot(np.ones_like(fr), fi, axes=0)
 
 # Mesh-grids for plotting
@@ -127,6 +127,7 @@ def integrand(x, frequency, wave_number):
 
 # Integrand
 inner = cp.asarray(integrand(x=quad_arr[:, 1], frequency=fz, wave_number=k))
+print(inner.shape)
 # Dispersion function doing 50-pt GL quad
 # D = 1.0 + (a ** 2.0) * 0.5 * np.pi * cp.divide(cp.tensordot(quad_arr[:, 2], inner, axes=([0], [0])),
 #                                                cp.sin(np.pi * cp.asarray(fz))[None, :, :]).get()
@@ -151,6 +152,14 @@ plt.contour(K, F, np.real(D[:, :, 0]), 0)
 plt.grid(True)
 plt.xlabel(r'$kr_L$')
 plt.ylabel(r'$\omega_r/\omega_c$')
+plt.tight_layout()
+
+plt.figure()
+plt.contour(FR, FI, np.real(D[0, :, :]), 0)
+plt.contour(FR, FI, np.imag(D[0, :, :]), 0)
+plt.grid(True)
+plt.xlabel(r'$\omega_r/\omega_c$')
+plt.ylabel(r'$\omega_i/\omega_c$')
 plt.tight_layout()
 
 plt.show()

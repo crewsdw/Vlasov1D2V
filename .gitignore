@@ -1,0 +1,7 @@
+numpy_versions/
+old_version/
+data/
+pictures/
+__pycache__/
+*.mp4
+*~

@@ -105,13 +105,13 @@ class Stepper:
             if self.time > self.write_counter * self.write_time:
                 print('\nI made it through step ' + str(self.steps_counter))
                 self.write_counter += 1
-                print('Saving data...')
-                save_file.save_data(distribution=distribution.arr.get(),
-                                    elliptic=elliptic,
-                                    density=distribution.moment_zero(),
-                                    time=self.time,
-                                    field_energy=energy)
-                print('Done.')
+                # print('Saving data...')
+                # save_file.save_data(distribution=distribution.arr.get(),
+                #                     elliptic=elliptic,
+                #                     density=distribution.moment_zero(),
+                #                     time=self.time,
+                #                     field_energy=energy)
+                # print('Done.')
                 print('The simulation time is {:0.3e}'.format(self.time))
                 print('The time-step is {:0.3e}'.format(self.dt))
                 print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
@@ -136,6 +136,7 @@ class Stepper:
 
         print('\nFinal time reached')
         print('Total steps were ' + str(self.steps_counter))
+        print('Time since start is {:0.3e}'.format(timer.time() - t0))
 
     def nonlinear_ssp_rk(self, distribution, basis, elliptic, grids, dg_flux, refs):
         # Sync ghost cells

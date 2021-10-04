@@ -22,7 +22,7 @@ matplotlib.rc('font', **font)
 # Parameters
 order = 8
 time_order = 3
-res_x, res_u, res_v = 25, 50, 50  # 10, 25, 25  # 25, 50, 50
+res_x, res_u, res_v = 4, 40, 40  # 10, 25, 25  # 25, 50, 50
 folder = '..\\data\\'
 filename = 'ring_param6_mode1'  # 'ring_param6_poisson2_2'  #   #
 # Flags
@@ -49,7 +49,7 @@ basis = b.Basis3D(orders)
 
 # Initialize grids
 print('\nInitializing grids...')
-k_est = 1.4 / om_pc  # 0.886 / om_pc  #  #  # 1.3 / om_pc  # 0.886 / om_pc  # k * larmor_r
+k_est = 0.886 / om_pc  # 1.4 / om_pc    #  #  # 1.3 / om_pc  # 0.886 / om_pc  # k * larmor_r
 L = 2.0 * np.pi / k_est  # 2.0 * np.pi / k_est  # 100.0  # 140  # 113.2
 print('Domain length is ' + str(L))
 lows = np.array([-L / 2.0, -8.5 * refs.vt_e, -8.5 * refs.vt_e])
@@ -62,15 +62,15 @@ geo_info = np.array([[lows[0], highs[0], resolutions[0], orders[0]],
                      [lows[2], highs[2], resolutions[2], orders[2]]])
 
 # Time information
-final_time = 200.0  # 190.0  # 200.0
-write_time = 2.0
+final_time = 2.0  # 200.0  # 190.0  # 200.0
+write_time = 1.0e-1  # 2.0
 # dt estimate
 dt_est = grids.u.dx / highs[1]
 print('Estimated dt is {:0.3e}'.format(dt_est))
 
 # Build distribution
 print('\nInitializing distribution function...')
-om = -1.181783 - 0.13115j  # -0.349j  #  #  # 1.542  # 1.0524
+om = -0.349j  # -1.181783 - 0.13115j  #   #  #  # 1.542  # 1.0524
 f0 = g.Distribution(vt=refs.vt_e, ring_j=ring_j, resolutions=resolutions, orders=orders,
                     om=om, om_pc=om_pc, delta_n=delta_n)  # om = 1.05, -3.486e-1j
 f0.initialize_quad_weights(grids)

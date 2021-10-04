@@ -25,15 +25,18 @@ def grid_flatten(arr):
 
 # Filename
 folder = '..\\data\\'
-filename = 'ring_param6_poisson2_2'  # 'ring_param6_mode1'  #  #  # 'ring_param6_poisson2_2'
+filename = 'ring_param6_mode1'  # 'ring_param6_poisson2_2'  # #  #  # 'ring_param6_poisson2_2'
 
 # Read data files
+idx_range = [0, 90]
 save_file = dm.ReadData(folder, filename)
-
 # time, distribution, potential, density, field_energy = save_file.read_data()
-time, distribution, potential = save_file.read_specific_time(idx=0)
-print(time)
-# potential = save_file.read_potential_only(idx=90)
+time, distribution, potential = save_file.read_specific_time(idx=90)
+# time, potential = save_file.read_potential_only(idx_range=idx_range)
+
+# print(time.shape)
+# print(potential.shape)
+# quit()
 
 # Run info
 orders, resolutions, lows, highs, time_info, ref_values = save_file.read_info()

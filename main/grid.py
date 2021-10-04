@@ -25,7 +25,8 @@ class Grid1D:
         # The grid does not have a basis but does have quad weights
         self.quad_weights = cp.tensordot(cp.ones(self.res), cp.asarray(basis.weights), axes=0)
         # arrays
-        self.arr = self.create_grid(basis.nodes)
+        self.arr = np.zeros((self.res_ghosts, self.order))
+        self.create_grid(basis.nodes)
         self.arr_cp = cp.asarray(self.arr)
         self.midpoints = np.array([(self.arr[i, -1] + self.arr[i, 0]) / 2.0 for i in range(1, self.res_ghosts - 1)])
         self.arr_max = np.amax(abs(self.arr))
@@ -65,11 +66,8 @@ class Grid1D:
         xl = np.linspace(min_gs, max_gs, num=self.res_ghosts)
 
         # construct coordinates
-        self.arr = np.zeros((self.res_ghosts, self.order))
         for i in range(self.res_ghosts):
             self.arr[i, :] = xl[i] + self.dx * nodes
-
-        return self.arr
 
     def grid2cp(self):
         self.arr = cp.asarray(self.arr)

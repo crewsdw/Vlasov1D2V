@@ -1,5 +1,6 @@
 import numpy as np
 import cupy as cp
+import time as timer
 
 import matplotlib.pyplot as plt
 
@@ -79,6 +80,26 @@ class DGFlux:
         # plt.imshow(df_dt_v_f[11, :, :].get())
         # plt.colorbar()
         # plt.show()
+
+        # # Time it
+        # t0 = timer.time()
+        # self.x_flux(function=function, basis=basis.b1, grid_u=grids.u) * grids.x.J
+        # t1 = timer.time()
+        # # Compute the flux
+        # self.u_flux(function=function, basis=basis.b2, elliptic=elliptic, grid_v=grids.v) * grids.u.J
+        # t2 = timer.time()
+        # self.v_flux(function=function, basis=basis.b3, elliptic=elliptic, grid_u=grids.u) * grids.v.J
+        # t3 = timer.time()
+        # # b = grid.v.J * self.v_flux_lgl(distribution=distribution, grid=grid)
+        # # t4 = timer.time()
+        # # c = self.source_term_lgl(distribution=distribution, grid=grid)
+        # # t5 = timer.time()
+        # print('x-flux time {:0.3e}'.format(t1 - t0))
+        # print('u-flux time {:0.3e}'.format(t2 - t1))
+        # print('v-flux time {:0.3e}'.format(t3 - t2))
+        # # print('source term time {:0.3e}'.format(t5 - t4))
+        # quit()
+
         return ((self.x_flux(function=function, basis=basis.b1, grid_u=grids.u) * grids.x.J) +
                 (self.u_flux(function=function, basis=basis.b2, elliptic=elliptic, grid_v=grids.v) * grids.u.J) +
                 (self.v_flux(function=function, basis=basis.b3, elliptic=elliptic, grid_u=grids.u) * grids.v.J))

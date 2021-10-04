@@ -72,11 +72,12 @@ class ReadData:
             pot = f['potential'][idx]
         return t, pdf, pot
 
-    def read_potential_only(self, idx):
+    def read_potential_only(self, idx_range):
         # Open for reading
         with h5py.File(self.write_filename, 'r') as f:
-            pot = f['potential'][idx]
-        return pot
+            t = f['time'][idx_range[0]:idx_range[1]]
+            pot = f['potential'][idx_range[0]:idx_range[1]]
+        return t, pot
 
     # Read data file
     def read_info(self):
